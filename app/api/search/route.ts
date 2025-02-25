@@ -94,8 +94,9 @@ export async function GET(request: Request) {
     let results;
     try {
       results = JSON.parse(responseText);
-    } catch (error) {
-      throw new Error(`Failed to parse JSON response. Raw response: ${responseText}`);
+    } catch (parseError: unknown) {
+      const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+      throw new Error(`Failed to parse JSON response: ${errorMessage}. Raw response: ${responseText}`);
     }
 
     return NextResponse.json({
@@ -108,13 +109,5 @@ export async function GET(request: Request) {
     
   } catch (error) {
     console.error('Error fetching models:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch models',
-        details: error.message,
-        requestUrl: apiUrl
-      },
-      { status: 500 }
-    );
   }
 }
