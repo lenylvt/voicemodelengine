@@ -94,7 +94,7 @@ export async function GET(request: Request) {
     let results;
     try {
       results = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch (error) {
       throw new Error(`Failed to parse JSON response. Raw response: ${responseText}`);
     }
 
@@ -105,6 +105,7 @@ export async function GET(request: Request) {
         }
       }
     });
+    
   } catch (error) {
     console.error('Error fetching models:', error);
     return NextResponse.json(
