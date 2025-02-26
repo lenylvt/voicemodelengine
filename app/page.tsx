@@ -1,76 +1,147 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { ModelData } from './api/search/route'
+import { useState } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Search, ChevronDown } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { searchConfig } from './config/search'
+import { motion, AnimatePresence } from "framer-motion"
+
+const AnimatedText = ({ text, className }: { text: string, className?: string }) => {
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <motion.div 
+        className="flex overflow-hidden relative h-6"
+        layout
+        initial={false}
+        animate={{ width: "auto" }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={text}
+            className="flex whitespace-nowrap"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+          >
+            {text.split("").map((char, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{
+                  duration: 0.25,
+                  delay: i * 0.02, // Slower delay between characters
+                  ease: "easeInOut"
+                }}
+                className="text-base font-medium tracking-wide" // Improved text styling
+              >
+                {char === " " ? "\u00A0" : char}
+              </motion.span>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
+      <ChevronDown className="h-4 w-4 opacity-70 hover:opacity-100 transition-opacity flex-shrink-0" />
+    </div>
+  );
+};
+
 
 export default function Home() {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<ModelData[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/search${query ? `?q=${query}` : ''}`)
-        const data = await response.json()
-        setResults(data.result.data.json)
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [query])
+  const [selectedTag, setSelectedTag] = useState('')
+  const [selectedSort, setSelectedSort] = useState('best-match')
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex gap-4 mb-8">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search models..."
-            className="flex-1 p-2 border rounded"
-          />
-        </div>
-
-        {loading ? (
-          <div>Loading...</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results?.map((model) => (
-              <div key={model.id} className="border rounded-lg p-4">
-                <div className="aspect-video relative mb-4">
-                  <Image
-                    src={model.processedImage.url}
-                    alt={model.title}
-                    fill
-                    className="object-cover rounded"
-                    placeholder="blur"
-                    blurDataURL={model.processedImage.blurDataUrl}
-                  />
-                </div>
-                <h2 className="text-xl font-bold mb-2">{model.title}</h2>
-                <p className="text-gray-600 mb-4">{model.content}</p>
-                <div className="flex gap-2 flex-wrap">
-                  {model.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="bg-gray-100 px-2 py-1 rounded text-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto flex flex-col items-center justify-center min-h-[80vh] max-w-3xl px-4">
+        <h1 className="text-4xl font-bold mb-8">Voice Model Search</h1>
+        
+        <div className="w-full space-y-2">
+          <div className="relative w-full">
+            <Input 
+              placeholder="Search voice models..."
+              className="w-full pl-6 pr-20 py-6 text-lg rounded-2xl border-2 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] focus-visible:ring-offset-2"
+            />
+            <Button 
+              size="icon" 
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <motion.div layout>
+                  <Button 
+                    variant="outline" 
+                    className="rounded-xl border-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 h-10"
+                  >
+                    <AnimatedText 
+                      text={selectedTag ? searchConfig.tags.find(t => t.id === selectedTag)?.label || '' : 'All Tags'}
+                      className="px-3"
+                    />
+                  </Button>
+                </motion.div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="p-2" 
+                align="start"
+              >
+                {searchConfig.tags.map(tag => (
+                  <DropdownMenuItem 
+                    key={tag.id}
+                    onClick={() => setSelectedTag(tag.id)}
+                    className="rounded-lg cursor-pointer"
+                  >
+                    {tag.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <motion.div layout>
+                  <Button 
+                    variant="outline" 
+                    className="rounded-xl border-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 h-10"
+                  >
+                    <AnimatedText 
+                      text={searchConfig.sortOptions.find(s => s.id === selectedSort)?.label || 'Sort By'}
+                      className="px-3"
+                    />
+                  </Button>
+                </motion.div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="p-2" 
+                align="start"
+              >
+                {searchConfig.sortOptions.map(option => (
+                  <DropdownMenuItem 
+                    key={option.id}
+                    onClick={() => setSelectedSort(option.id)}
+                    className="rounded-lg cursor-pointer"
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
       </div>
     </main>
   )
